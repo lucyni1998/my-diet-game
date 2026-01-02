@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>均衡飲食挑戰 - 小精靈進化版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        
+        :root {
+            --bg-dark: #0f172a;
+            --khaki-nut: #C3B091; 
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-dark);
+            color: white;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 餐盤配置 */
+        .plate-container {
+            position: relative;
+            background: rgba(255,255,255,0.05);
+            padding: 50px 70px;
+            border-radius: 60px;
+            border: 2px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+        }
+
+        .plate-main {
+            position: relative;
+            width: 480px;
+            height: 340px;
+            background-color: #1e293b;
+            border-radius: 40px;
+            border: 12px solid #334155;
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .drop-zone {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .drop-zone.active {
+            filter: brightness(1.3);
+            transform: scale(1.02);
+            box-shadow: inset 0 0 20px rgba(255,255,255,0.3);
+        }
+
+        .col-left { width: 25%; background-color: #ea580c; border-radius: 25px 8px 8px 25px; }
+        .col-mid { width: 35%; background-color: #16a34a; border-radius: 8px; }
+        .col-right { width: 40%; display: flex; flex-direction: column; gap: 10px; }
+        
+        #zone-milk {
+            position: absolute; top: -30px; left: -30px; width: 110px; height: 110px;
+            border-radius: 50%; background: #3b82f6; border: 6px solid #fff; z-index: 50;
+        }
+        #zone-oil {
+            position: absolute; top: 50%; left: 60%; transform: translate(-50%, -50%);
+            width: 80px; height: 80px; border-radius: 50%; 
+            background: var(--khaki-nut);
+            border: 4px solid #fff; z-index: 45;
+        }
+        #zone-protein { height: 48%; background-color: #db2777; border-radius: 8px 25px 8px 8px; }
+        #zone-grain { height: 48%; background-color: #ca8a04; border-radius: 8px 8px 25px 8px; }
+
+        .zone-label { font-weight: 900; pointer-events: none; text-align: center; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+
+        /* 食物卡片 */
+        .food-pool {
+            background: rgba(30, 41, 59, 0.8); border-radius: 24px; padding: 12px;
+            border: 1px solid rgba(255,255,255,0.1); flex: 1; overflow-y: auto;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+        }
+
+        .food-card {
+            cursor: grab; background: #334155; border-radius: 12px; padding: 10px 4px;
+            text-align: center; transition: all 0.2s; border: 2px solid transparent;
+        }
+        .food-card:hover { background: #475569; border-color: #0ea5e9; }
+
+        .placed-item {
+            position: absolute; font-size: 3.5rem; z-index: 60; pointer-events: none;
+            transform: translate(-50%, -50%); animation: itemPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes itemPop { from { transform: translate(-50%, -50%) scale(0); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+
+        .sprite-bubble {
+            background: white; color: #0f172a; padding: 12px; border-radius: 16px;
+            font-weight: 800; font-size: 0.85rem; position: relative; margin-bottom: 10px;
+            border: 3px solid #0ea5e9; text-align: center; width: 100%;
+            animation: bubbleFloat 2s ease-in-out infinite;
+        }
+        @keyframes bubbleFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        .sprite-bubble::after {
+            content: ''; position: absolute; bottom: -12px; left: 50%; transform: translateX(-50%);
+            border-width: 12px 10px 0; border-style: solid; border-color: #0ea5e9 transparent transparent;
+        }
+
+        /* 隱藏滾動條但保留功能 */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
+</head>
+<body>
+
+    <header class="w-full px-8 py-4 bg-slate-900 border-b border-white/5 flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <span class="text-4xl">🥗</span>
+            <div>
+                <h1 class="text-xl font-black text-white tracking-widest">均衡飲食挑戰</h1>
+                <p class="text-[10px] text-sky-400 font-bold uppercase tracking-tighter">Educational Dynamic System v8</p>
+            </div>
+        </div>
+        <div class="flex gap-8">
+            <div class="flex flex-col items-center">
+                <span class="text-[10px] text-slate-400 font-bold">剩餘時間</span>
+                <span id="timer-text" class="text-2xl font-black text-white">30s</span>
+            </div>
+            <div class="flex flex-col items-center">
+                <span class="text-[10px] text-slate-400 font-bold">收集進度</span>
+                <div class="bg-sky-500/10 border border-sky-500/50 px-4 py-1 rounded-xl">
+                    <span id="score-text" class="text-2xl font-black text-sky-400">0 / 6</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-row items-center justify-center gap-12 p-8 overflow-hidden">
+        <!-- 餐盤 -->
+        <div class="plate-container">
+            <div class="plate-main" id="main-plate">
+                <div id="zone-milk" class="drop-zone" data-category="milk"><span class="zone-label text-sm">乳品</span></div>
+                <div id="zone-oil" class="drop-zone" data-category="oil"><span class="zone-label text-[10px] leading-tight">堅果<br>種子</span></div>
+                <div id="zone-fruit" class="drop-zone col-left" data-category="fruit"><span class="zone-label">水果</span></div>
+                <div id="zone-veg" class="drop-zone col-mid" data-category="vegetable"><span class="zone-label">蔬菜</span></div>
+                <div class="col-right">
+                    <div id="zone-protein" class="drop-zone" data-category="protein"><span class="zone-label">豆魚蛋肉</span></div>
+                    <div id="zone-grain" class="drop-zone" data-category="grain"><span class="zone-label">全穀雜糧</span></div>
+                </div>
+                <div id="placed-items-container" class="absolute inset-0 pointer-events-none"></div>
+            </div>
+        </div>
+
+        <!-- 側邊欄 -->
+        <div class="flex flex-col gap-4 w-72 h-[500px]">
+            <div class="flex flex-col items-center">
+                <div id="sprite-bubble" class="sprite-bubble">準備好了嗎？</div>
+                <svg id="sprite-svg" class="w-20 h-20" viewBox="0 0 100 100">
+                    <circle cx="50" cy="55" r="35" fill="#0ea5e9" />
+                    <circle cx="38" cy="45" r="8" fill="white" />
+                    <circle cx="62" cy="45" r="8" fill="white" />
+                    <circle id="pupil-l" cx="40" cy="45" r="4" fill="#0f172a" />
+                    <circle id="pupil-r" cx="60" cy="45" r="4" fill="#0f172a" />
+                    <path id="sprite-mouth" d="M 40 65 Q 50 75 60 65" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" />
+                </svg>
+            </div>
+            
+            <div class="food-pool" id="food-pool-grid">
+                <!-- 食物卡片由 JS 動態生成 -->
+            </div>
+        </div>
+    </main>
+
+    <!-- 遮罩介面 -->
+    <div id="start-mask" class="fixed inset-0 z-[6000] bg-slate-950 flex flex-col items-center justify-center">
+        <div class="text-[120px] mb-4">🍱</div>
+        <h1 class="text-4xl font-black text-white mb-2">我的餐盤任務</h1>
+        <p class="text-sky-400 font-bold mb-10 tracking-[0.3em]">動態隨機教學版</p>
+        <button onclick="startGame()" class="bg-white text-slate-950 px-12 py-4 rounded-full font-black text-xl hover:scale-105 transition-all">開始挑戰</button>
+    </div>
+
+    <div id="end-screen" class="fixed inset-0 z-[5000] hidden flex items-center justify-center bg-slate-950/90 backdrop-blur-md">
+        <div class="bg-slate-900 p-12 rounded-[40px] text-center border border-white/10 shadow-2xl">
+            <div id="end-icon" class="text-8xl mb-4">🏆</div>
+            <h2 id="end-title" class="text-3xl font-black mb-2 text-white">任務成功</h2>
+            <p id="end-msg" class="text-slate-400 mb-8">你對均衡飲食的掌握度非常高！</p>
+            <button onclick="resetGame()" class="bg-sky-500 hover:bg-sky-400 text-white px-12 py-4 rounded-2xl font-black text-xl w-full">再次挑戰</button>
+        </div>
+    </div>
+
+    <script>
+        // 食材資料庫 (不含容易混淆的玉米選項)
+        const foodDatabase = {
+            fruit: [
+                { name: '紅蘋果', icon: '🍎' }, { name: '黃香蕉', icon: '🍌' },
+                { name: '甜葡萄', icon: '🍇' }, { name: '鮮橘子', icon: '🍊' },
+                { name: '紅草莓', icon: '🍓' }, { name: '奇異果', icon: '🥝' },
+                { name: '紅西瓜', icon: '🍉' }, { name: '青芭樂', icon: '🍐' }
+            ],
+            vegetable: [
+                { name: '花椰菜', icon: '🥦' }, { name: '紅蘿蔔', icon: '🥕' },
+                { name: '紫茄子', icon: '🍆' }, { name: '綠苦瓜', icon: '🥒' },
+                { name: '大番茄', icon: '🍅' }, { name: '高麗菜', icon: '🥬' },
+                { name: '鮮香菇', icon: '🍄' }, { name: '青江菜', icon: '🥬' }
+            ],
+            grain: [
+                { name: '糙米飯', icon: '🍚' }, { name: '紅地瓜', icon: '🍠' },
+                { name: '全麥吐司', icon: '🍞' }, { name: '煮燕麥', icon: '🥣' },
+                { name: '馬鈴薯', icon: '🥔' }, { name: '栗子', icon: '🌰' },
+                { name: '南瓜', icon: '🎃' }
+            ],
+            protein: [
+                { name: '鯛魚片', icon: '🐟' }, { name: '荷包蛋', icon: '🍳' },
+                { name: '板豆腐', icon: '🧊' }, { name: '嫩雞腿', icon: '🍗' },
+                { name: '大鮮蝦', icon: '🦐' }, { name: '滷牛肉', icon: '🥩' }
+            ],
+            milk: [
+                { name: '鮮乳', icon: '🥛' }, { name: '優格', icon: '🍦' },
+                { name: '起司', icon: '🧀' }
+            ],
+            oil: [
+                { name: '花生', icon: '🥜' }, { name: '腰果', icon: '🌰' },
+                { name: '核桃', icon: '🥨' }, { name: '杏仁果', icon: '🥜' }
+            ],
+            junk: [
+                { name: '甜甜圈', icon: '🍩' }, { name: '炸薯條', icon: '🍟' },
+                { name: '可樂', icon: '🥤' }, { name: '巧克力', icon: '🍫' },
+                { name: '洋芋片', icon: '🥔' }, { name: '棒棒糖', icon: '🍭' }
+            ]
+        };
+
+        // 小精靈話語腳本
+        const spriteScripts = {
+            intro: [
+                "今天想吃點什麼呢？",
+                "準備好挑戰營養知識了嗎？",
+                "嘿！讓我們來配置完美的餐盤吧！",
+                "均衡飲食才能長高壯喔！",
+                "來試試你的分類功力吧！"
+            ],
+            correct: [
+                "正確！這非常有營養。",
+                "沒錯，你選對類別了！",
+                "太棒了，餐盤變得更均衡了。",
+                "專家等級的選擇！",
+                "就是這個！這類食物很重要。"
+            ],
+            error: [
+                "放錯位置了，再想想看？",
+                "這類食物不應該放在這區喔！",
+                "哎呀，類別搞錯了，再試試。",
+                "這裡似乎不是它的家呢。"
+            ],
+            junk: [
+                "哎呀！那是加工食品，不能放進餐盤。",
+                "那是零食，對身體負擔太大喔！",
+                "我們應該選擇原態食物！",
+                "這個不能算入均衡飲食內呢。"
+            ],
+            hurry: [
+                "時間快到囉，快一點！",
+                "剩不到十秒了，加油！",
+                "快！餐盤還空空的呢！"
+            ],
+            alreadyHave: [
+                "這一類已經攝取足夠囉！",
+                "換一個種類看看，均衡更重要。",
+                "盤子裡已經有這類營養了。"
+            ]
+        };
+
+        let timeLeft = 30;
+        let collectedCategories = new Set();
+        let timerInterval = null;
+        let isGameRunning = false;
+        let draggedElement = null;
+
+        function getRandomMsg(type) {
+            const list = spriteScripts[type];
+            return list[Math.floor(Math.random() * list.length)];
+        }
+
+        function startGame() {
+            document.getElementById('start-mask').style.display = 'none';
+            initGame();
+        }
+
+        function resetGame() {
+            document.getElementById('end-screen').classList.add('hidden');
+            initGame();
+        }
+
+        function initGame() {
+            isGameRunning = true;
+            timeLeft = 30;
+            collectedCategories = new Set();
+            document.getElementById('score-text').innerText = '0 / 6';
+            document.getElementById('timer-text').innerText = '30s';
+            document.getElementById('placed-items-container').innerHTML = '';
+            
+            if (timerInterval) clearInterval(timerInterval);
+            refreshFoodPool();
+            startTimer();
+            updateSprite(getRandomMsg('intro'), 'happy');
+        }
+
+        function refreshFoodPool() {
+            const grid = document.getElementById('food-pool-grid');
+            grid.innerHTML = '';
+            
+            let currentPool = [];
+            
+            // 每類隨機抽取
+            Object.keys(foodDatabase).forEach(cat => {
+                if (cat === 'junk') return;
+                const items = foodDatabase[cat];
+                const picked = items[Math.floor(Math.random() * items.length)];
+                currentPool.push({ ...picked, category: cat });
+            });
+
+            // 隨機垃圾食物
+            const junks = [...foodDatabase.junk].sort(() => 0.5 - Math.random()).slice(0, 2);
+            junks.forEach(j => currentPool.push({ ...j, category: 'junk' }));
+
+            // 徹底隨機排列
+            currentPool.sort(() => 0.5 - Math.random()).forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'food-card';
+                card.draggable = true;
+                card.innerHTML = `<div class="text-3xl">${item.icon}</div><div class="text-[9px] font-black text-slate-400 uppercase mt-1">${item.name}</div>`;
+                card.dataset.category = item.category;
+                card.dataset.icon = item.icon;
+
+                card.ondragstart = (e) => {
+                    draggedElement = card;
+                    card.style.opacity = '0.4';
+                };
+                card.ondragend = () => {
+                    draggedElement = null;
+                    card.style.opacity = '1';
+                };
+                grid.appendChild(card);
+            });
+
+            setupDropZones();
+        }
+
+        function setupDropZones() {
+            document.querySelectorAll('.drop-zone').forEach(zone => {
+                zone.ondragover = (e) => {
+                    e.preventDefault();
+                    zone.classList.add('active');
+                };
+                zone.ondragleave = () => zone.classList.remove('active');
+                zone.ondrop = (e) => {
+                    e.preventDefault();
+                    zone.classList.remove('active');
+                    handleDrop(zone);
+                };
+            });
+        }
+
+        function handleDrop(zone) {
+            if (!draggedElement || !isGameRunning) return;
+
+            const foodCat = draggedElement.dataset.category;
+            const zoneCat = zone.dataset.category;
+
+            if (foodCat === 'junk') {
+                updateSprite(getRandomMsg('junk'), 'sad');
+                return;
+            }
+
+            if (foodCat === zoneCat) {
+                if (collectedCategories.has(foodCat)) {
+                    updateSprite(getRandomMsg('alreadyHave'), 'happy');
+                    return;
+                }
+
+                collectedCategories.add(foodCat);
+                document.getElementById('score-text').innerText = `${collectedCategories.size} / 6`;
+                
+                const zRect = zone.getBoundingClientRect();
+                const pRect = document.getElementById('main-plate').getBoundingClientRect();
+                const emoji = document.createElement('div');
+                emoji.className = 'placed-item';
+                emoji.style.left = (zRect.left - pRect.left + zRect.width / 2) + 'px';
+                emoji.style.top = (zRect.top - pRect.top + zRect.height / 2) + 'px';
+                emoji.innerText = draggedElement.dataset.icon;
+                document.getElementById('placed-items-container').appendChild(emoji);
+                
+                draggedElement.style.visibility = 'hidden';
+                updateSprite(getRandomMsg('correct'), 'happy');
+
+                if (collectedCategories.size === 6) endLevel(true);
+            } else {
+                updateSprite(getRandomMsg('error'), 'thinking');
+            }
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (!isGameRunning) return;
+                timeLeft--;
+                document.getElementById('timer-text').innerText = timeLeft + 's';
+                
+                if (timeLeft === 10) {
+                    updateSprite(getRandomMsg('hurry'), 'thinking');
+                }
+                
+                if (timeLeft <= 0) endLevel(false);
+            }, 1000);
+        }
+
+        function updateSprite(msg, mood) {
+            const bubble = document.getElementById('sprite-bubble');
+            bubble.style.animation = 'none'; // 重置動畫
+            void bubble.offsetWidth; // 觸發重繪
+            bubble.style.animation = 'bubbleFloat 2s ease-in-out infinite';
+            
+            bubble.innerText = msg;
+            const mouth = document.getElementById('sprite-mouth');
+            if (mood === 'happy') mouth.setAttribute('d', 'M 40 65 Q 50 75 60 65');
+            else if (mood === 'thinking') mouth.setAttribute('d', 'M 40 68 Q 50 68 60 68');
+            else if (mood === 'sad') mouth.setAttribute('d', 'M 40 72 Q 50 62 60 72');
+        }
+
+        function endLevel(isWin) {
+            isGameRunning = false;
+            clearInterval(timerInterval);
+            const screen = document.getElementById('end-screen');
+            screen.classList.remove('hidden');
+            if (isWin) {
+                document.getElementById('end-icon').innerText = '🏆';
+                document.getElementById('end-title').innerText = '任務達成！';
+                document.getElementById('end-msg').innerText = '你配置了一個完美的均衡餐盤！';
+                updateSprite('太厲害了，你是營養達人！', 'happy');
+            } else {
+                document.getElementById('end-icon').innerText = '⌛';
+                document.getElementById('end-title').innerText = '時間到！';
+                document.getElementById('end-msg').innerText = '差一點點，下次要更快收集完畢喔！';
+                updateSprite('沒關係，再來挑戰一次吧！', 'sad');
+            }
+        }
+    </script>
+</body>
+</html>
