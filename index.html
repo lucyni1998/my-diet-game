@@ -24,15 +24,16 @@
             overflow: hidden;
         }
 
-        /* 餐盤配置 */
-        .plate-container {
+        /* 餐盤配置容器 */
+        .plate-outer-wrapper {
             position: relative;
-            background: rgba(255,255,255,0.05);
-            padding: 50px 70px;
-            border-radius: 60px;
-            border: 2px solid rgba(255,255,255,0.1);
             display: flex;
             align-items: center;
+            gap: 40px; /* 增加餐盤與筷子的距離 */
+            background: rgba(255,255,255,0.05);
+            padding: 60px 80px;
+            border-radius: 60px;
+            border: 2px solid rgba(255,255,255,0.1);
         }
 
         .plate-main {
@@ -46,6 +47,20 @@
             gap: 10px;
             padding: 10px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        /* 筷子裝飾 */
+        .chopsticks {
+            display: flex;
+            gap: 12px;
+            height: 300px;
+        }
+        .chopstick {
+            width: 10px;
+            height: 100%;
+            background: linear-gradient(to bottom, #ffffff, #e2e8f0);
+            border-radius: 20px;
+            box-shadow: 4px 4px 10px rgba(0,0,0,0.3);
         }
 
         .drop-zone {
@@ -150,7 +165,8 @@
     </header>
 
     <main class="flex-1 flex flex-row items-center justify-center gap-12 p-8 overflow-hidden">
-        <div class="plate-container">
+        <div class="plate-outer-wrapper">
+            <!-- 餐盤主體 -->
             <div class="plate-main" id="main-plate">
                 <div id="zone-milk" class="drop-zone" data-category="milk"><span class="zone-label text-sm">乳品</span></div>
                 <div id="zone-oil" class="drop-zone" data-category="oil"><span class="zone-label text-[10px] leading-tight">堅果<br>種子</span></div>
@@ -161,6 +177,11 @@
                     <div id="zone-grain" class="drop-zone" data-category="grain"><span class="zone-label">全穀雜糧</span></div>
                 </div>
                 <div id="placed-items-container" class="absolute inset-0 pointer-events-none"></div>
+            </div>
+            <!-- 筷子裝飾 -->
+            <div class="chopsticks">
+                <div class="chopstick"></div>
+                <div class="chopstick"></div>
             </div>
         </div>
 
