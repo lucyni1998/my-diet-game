@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>均衡飲食挑戰 - 小精靈進化版</title>
+    <title>均衡飲食挑戰 - 完整知識庫版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
@@ -80,7 +80,6 @@
 
         .zone-label { font-weight: 900; pointer-events: none; text-align: center; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 
-        /* 食物卡片 */
         .food-pool {
             background: rgba(30, 41, 59, 0.8); border-radius: 24px; padding: 12px;
             border: 1px solid rgba(255,255,255,0.1); flex: 1; overflow-y: auto;
@@ -91,7 +90,7 @@
             cursor: grab; background: #334155; border-radius: 12px; padding: 10px 4px;
             text-align: center; transition: all 0.2s; border: 2px solid transparent;
         }
-        .food-card:hover { background: #475569; border-color: #0ea5e9; }
+        .food-card:active { cursor: grabbing; }
 
         .placed-item {
             position: absolute; font-size: 3.5rem; z-index: 60; pointer-events: none;
@@ -105,17 +104,25 @@
             border: 3px solid #0ea5e9; text-align: center; width: 100%;
             animation: bubbleFloat 2s ease-in-out infinite;
         }
-        @keyframes bubbleFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-5px); }
-        }
+        @keyframes bubbleFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
         .sprite-bubble::after {
             content: ''; position: absolute; bottom: -12px; left: 50%; transform: translateX(-50%);
             border-width: 12px 10px 0; border-style: solid; border-color: #0ea5e9 transparent transparent;
         }
 
-        /* 隱藏滾動條但保留功能 */
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        /* 知識庫 Modal 樣式 */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95);
+            display: none; align-items: center; justify-content: center; z-index: 8000;
+            padding: 20px;
+        }
+        .modal-content {
+            background: #1e293b; width: 100%; max-width: 850px; max-height: 90vh;
+            border-radius: 32px; border: 1px solid rgba(255,255,255,0.1);
+            overflow-y: auto; padding: 40px; position: relative;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -125,7 +132,7 @@
             <span class="text-4xl">🥗</span>
             <div>
                 <h1 class="text-xl font-black text-white tracking-widest">均衡飲食挑戰</h1>
-                <p class="text-[10px] text-sky-400 font-bold uppercase tracking-tighter">Educational Dynamic System v8</p>
+                <p class="text-[10px] text-sky-400 font-bold uppercase tracking-tighter">Educational Dynamic System v9.1</p>
             </div>
         </div>
         <div class="flex gap-8">
@@ -143,7 +150,6 @@
     </header>
 
     <main class="flex-1 flex flex-row items-center justify-center gap-12 p-8 overflow-hidden">
-        <!-- 餐盤 -->
         <div class="plate-container">
             <div class="plate-main" id="main-plate">
                 <div id="zone-milk" class="drop-zone" data-category="milk"><span class="zone-label text-sm">乳品</span></div>
@@ -158,7 +164,6 @@
             </div>
         </div>
 
-        <!-- 側邊欄 -->
         <div class="flex flex-col gap-4 w-72 h-[500px]">
             <div class="flex flex-col items-center">
                 <div id="sprite-bubble" class="sprite-bubble">準備好了嗎？</div>
@@ -171,14 +176,59 @@
                     <path id="sprite-mouth" d="M 40 65 Q 50 75 60 65" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" />
                 </svg>
             </div>
-            
-            <div class="food-pool" id="food-pool-grid">
-                <!-- 食物卡片由 JS 動態生成 -->
-            </div>
+            <div class="food-pool" id="food-pool-grid"></div>
         </div>
     </main>
 
-    <!-- 遮罩介面 -->
+    <!-- 完整知識庫彈窗 -->
+    <div id="knowledge-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button onclick="closeKnowledge()" class="absolute top-6 right-6 text-slate-400 hover:text-white text-2xl font-black">✕</button>
+            <h2 class="text-3xl font-black text-sky-400 mb-6 flex items-center gap-3">
+                <span>📘</span> 營養與健康教學知識庫 (全)
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-slate-200">
+                <section>
+                    <h3 class="text-xl font-bold text-white mb-2 border-l-4 border-orange-500 pl-3">🌾 全穀雜糧類</h3>
+                    <p class="text-xs leading-relaxed">主熱量來源。要注意<b>地瓜、南瓜、芋頭、馬鈴薯、老玉米</b>均屬此類，而非蔬菜。建議 1/3 為未精製全穀。</p>
+                </section>
+                <section>
+                    <h3 class="text-xl font-bold text-white mb-2 border-l-4 border-green-500 pl-3">🥦 蔬菜類</h3>
+                    <p class="text-xs leading-relaxed">提供纖維與植化素。顏色越深營養越高。<b>玉米筍、大番茄、菇類、藻類</b>皆屬蔬菜類。</p>
+                </section>
+                <section>
+                    <h3 class="text-xl font-bold text-white mb-2 border-l-4 border-pink-500 pl-3">🐟 豆魚蛋肉類</h3>
+                    <p class="text-xs leading-relaxed">蛋白質來源。建議順序：<b>豆 > 魚/海鮮 > 蛋 > 肉</b>。避免加工肉品如培根、貢丸。</p>
+                </section>
+                <section>
+                    <h3 class="text-xl font-bold text-white mb-2 border-l-4 border-yellow-500 pl-3">🍎 水果類</h3>
+                    <p class="text-xs leading-relaxed">提供維生素C。建議每餐一個拳頭大。注意：<b>水果不能取代蔬菜</b>，且果汁不等同新鮮水果。</p>
+                </section>
+                <section>
+                    <h3 class="text-xl font-bold text-white mb-2 border-l-4 border-blue-500 pl-3">🥛 乳品類</h3>
+                    <p class="text-xs leading-relaxed">補鈣首選。包含<b>鮮乳、優格、優酪乳、起司</b>。建議每天早晚各喝一杯 (240ml)。</p>
+                </section>
+                <section>
+                    <h3 class="text-xl font-bold text-white mb-2 border-l-4 border-amber-800 pl-3">🥜 堅果種子與油脂</h3>
+                    <p class="text-xs leading-relaxed">維持機能。<b>花生、核桃、芝麻</b>屬於堅果類。注意：<b>酪梨</b>在營養學上分類為「油脂類」而非水果。</p>
+                </section>
+                <section class="md:col-span-2 bg-slate-800/50 p-6 rounded-2xl">
+                    <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">💡 我的餐盤口訣 (背起來就不會忘！)</h3>
+                    <ul class="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs font-bold text-slate-300">
+                        <li class="bg-slate-900 p-2 rounded">每天早晚一碗奶</li>
+                        <li class="bg-slate-900 p-2 rounded">每餐水果拳頭大</li>
+                        <li class="bg-slate-900 p-2 rounded">菜比水果多一點</li>
+                        <li class="bg-slate-900 p-2 rounded">飯跟蔬菜一樣多</li>
+                        <li class="bg-slate-900 p-2 rounded">豆魚蛋肉一掌心</li>
+                        <li class="bg-slate-900 p-2 rounded">堅果種子一茶匙</li>
+                    </ul>
+                </section>
+            </div>
+            <button onclick="closeKnowledge()" class="mt-8 w-full bg-sky-500 py-4 rounded-xl font-black hover:bg-sky-400 transition-colors">我看完了，返回遊戲</button>
+        </div>
+    </div>
+
+    <!-- 開始/結算遮罩 -->
     <div id="start-mask" class="fixed inset-0 z-[6000] bg-slate-950 flex flex-col items-center justify-center">
         <div class="text-[120px] mb-4">🍱</div>
         <h1 class="text-4xl font-black text-white mb-2">我的餐盤任務</h1>
@@ -187,206 +237,94 @@
     </div>
 
     <div id="end-screen" class="fixed inset-0 z-[5000] hidden flex items-center justify-center bg-slate-950/90 backdrop-blur-md">
-        <div class="bg-slate-900 p-12 rounded-[40px] text-center border border-white/10 shadow-2xl">
+        <div class="bg-slate-900 p-10 rounded-[40px] text-center border border-white/10 shadow-2xl w-[400px]">
             <div id="end-icon" class="text-8xl mb-4">🏆</div>
             <h2 id="end-title" class="text-3xl font-black mb-2 text-white">任務成功</h2>
-            <p id="end-msg" class="text-slate-400 mb-8">你對均衡飲食的掌握度非常高！</p>
-            <button onclick="resetGame()" class="bg-sky-500 hover:bg-sky-400 text-white px-12 py-4 rounded-2xl font-black text-xl w-full">再次挑戰</button>
+            <p id="end-msg" class="text-slate-400 mb-8">做得好！餐盤比例非常完美。</p>
+            <div class="flex flex-col gap-3">
+                <button onclick="openKnowledge()" class="bg-sky-500/20 text-sky-400 border border-sky-500/50 px-8 py-4 rounded-2xl font-black text-lg hover:bg-sky-500/30 transition-all">💡 查看營養教學知識庫</button>
+                <button onclick="resetGame()" class="bg-white text-slate-950 px-8 py-4 rounded-2xl font-black text-lg hover:scale-105 transition-all">再次挑戰</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // 食材資料庫 (不含容易混淆的玉米選項)
         const foodDatabase = {
-            fruit: [
-                { name: '紅蘋果', icon: '🍎' }, { name: '黃香蕉', icon: '🍌' },
-                { name: '甜葡萄', icon: '🍇' }, { name: '鮮橘子', icon: '🍊' },
-                { name: '紅草莓', icon: '🍓' }, { name: '奇異果', icon: '🥝' },
-                { name: '紅西瓜', icon: '🍉' }, { name: '青芭樂', icon: '🍐' }
-            ],
-            vegetable: [
-                { name: '花椰菜', icon: '🥦' }, { name: '紅蘿蔔', icon: '🥕' },
-                { name: '紫茄子', icon: '🍆' }, { name: '綠苦瓜', icon: '🥒' },
-                { name: '大番茄', icon: '🍅' }, { name: '高麗菜', icon: '🥬' },
-                { name: '鮮香菇', icon: '🍄' }, { name: '青江菜', icon: '🥬' }
-            ],
-            grain: [
-                { name: '糙米飯', icon: '🍚' }, { name: '紅地瓜', icon: '🍠' },
-                { name: '全麥吐司', icon: '🍞' }, { name: '煮燕麥', icon: '🥣' },
-                { name: '馬鈴薯', icon: '🥔' }, { name: '栗子', icon: '🌰' },
-                { name: '南瓜', icon: '🎃' }
-            ],
-            protein: [
-                { name: '鯛魚片', icon: '🐟' }, { name: '荷包蛋', icon: '🍳' },
-                { name: '板豆腐', icon: '🧊' }, { name: '嫩雞腿', icon: '🍗' },
-                { name: '大鮮蝦', icon: '🦐' }, { name: '滷牛肉', icon: '🥩' }
-            ],
-            milk: [
-                { name: '鮮乳', icon: '🥛' }, { name: '優格', icon: '🍦' },
-                { name: '起司', icon: '🧀' }
-            ],
-            oil: [
-                { name: '花生', icon: '🥜' }, { name: '腰果', icon: '🌰' },
-                { name: '核桃', icon: '🥨' }, { name: '杏仁果', icon: '🥜' }
-            ],
-            junk: [
-                { name: '甜甜圈', icon: '🍩' }, { name: '炸薯條', icon: '🍟' },
-                { name: '可樂', icon: '🥤' }, { name: '巧克力', icon: '🍫' },
-                { name: '洋芋片', icon: '🥔' }, { name: '棒棒糖', icon: '🍭' }
-            ]
+            fruit: [{ name: '紅蘋果', icon: '🍎' }, { name: '黃香蕉', icon: '🍌' }, { name: '紅西瓜', icon: '🍉' }, { name: '青芭樂', icon: '🍐' }],
+            vegetable: [{ name: '花椰菜', icon: '🥦' }, { name: '紅蘿蔔', icon: '🥕' }, { name: '大番茄', icon: '🍅' }, { name: '青江菜', icon: '🥬' }],
+            grain: [{ name: '糙米飯', icon: '🍚' }, { name: '紅地瓜', icon: '🍠' }, { name: '南瓜', icon: '🎃' }, { name: '馬鈴薯', icon: '🥔' }],
+            protein: [{ name: '鯛魚片', icon: '🐟' }, { name: '荷包蛋', icon: '🍳' }, { name: '板豆腐', icon: '🧊' }, { name: '嫩雞腿', icon: '🍗' }],
+            milk: [{ name: '鮮乳', icon: '🥛' }, { name: '優格', icon: '🍦' }, { name: '起司', icon: '🧀' }],
+            oil: [{ name: '花生', icon: '🥜' }, { name: '腰果', icon: '🌰' }, { name: '核桃', icon: '🥨' }],
+            junk: [{ name: '炸薯條', icon: '🍟' }, { name: '甜甜圈', icon: '🍩' }, { name: '可樂', icon: '🥤' }]
         };
 
-        // 小精靈話語腳本
         const spriteScripts = {
-            intro: [
-                "今天想吃點什麼呢？",
-                "準備好挑戰營養知識了嗎？",
-                "嘿！讓我們來配置完美的餐盤吧！",
-                "均衡飲食才能長高壯喔！",
-                "來試試你的分類功力吧！"
-            ],
-            correct: [
-                "正確！這非常有營養。",
-                "沒錯，你選對類別了！",
-                "太棒了，餐盤變得更均衡了。",
-                "專家等級的選擇！",
-                "就是這個！這類食物很重要。"
-            ],
-            error: [
-                "放錯位置了，再想想看？",
-                "這類食物不應該放在這區喔！",
-                "哎呀，類別搞錯了，再試試。",
-                "這裡似乎不是它的家呢。"
-            ],
-            junk: [
-                "哎呀！那是加工食品，不能放進餐盤。",
-                "那是零食，對身體負擔太大喔！",
-                "我們應該選擇原態食物！",
-                "這個不能算入均衡飲食內呢。"
-            ],
-            hurry: [
-                "時間快到囉，快一點！",
-                "剩不到十秒了，加油！",
-                "快！餐盤還空空的呢！"
-            ],
-            alreadyHave: [
-                "這一類已經攝取足夠囉！",
-                "換一個種類看看，均衡更重要。",
-                "盤子裡已經有這類營養了。"
-            ]
+            intro: ["準備好挑戰營養知識了嗎？", "讓我們來配置完美的餐盤吧！"],
+            correct: ["正確！這非常有營養。", "專家等級的選擇！"],
+            error: ["放錯位置了，再想想看？", "類別搞錯了，再試試。"],
+            junk: ["哎呀！那是加工食品，不能入盤喔！"],
+            hurry: ["時間快到囉，加油！"],
+            alreadyHave: ["這一類已經攝取足夠囉！"]
         };
 
-        let timeLeft = 30;
-        let collectedCategories = new Set();
-        let timerInterval = null;
-        let isGameRunning = false;
-        let draggedElement = null;
+        let timeLeft = 30, collectedCategories = new Set(), timerInterval = null, isGameRunning = false, draggedElement = null;
 
-        function getRandomMsg(type) {
-            const list = spriteScripts[type];
-            return list[Math.floor(Math.random() * list.length)];
-        }
-
-        function startGame() {
-            document.getElementById('start-mask').style.display = 'none';
-            initGame();
-        }
-
-        function resetGame() {
-            document.getElementById('end-screen').classList.add('hidden');
-            initGame();
-        }
+        function getRandomMsg(type) { return spriteScripts[type][Math.floor(Math.random() * spriteScripts[type].length)]; }
+        function openKnowledge() { document.getElementById('knowledge-modal').style.display = 'flex'; }
+        function closeKnowledge() { document.getElementById('knowledge-modal').style.display = 'none'; }
+        function startGame() { document.getElementById('start-mask').style.display = 'none'; initGame(); }
+        function resetGame() { document.getElementById('end-screen').classList.add('hidden'); initGame(); }
 
         function initGame() {
-            isGameRunning = true;
-            timeLeft = 30;
-            collectedCategories = new Set();
+            isGameRunning = true; timeLeft = 30; collectedCategories = new Set();
             document.getElementById('score-text').innerText = '0 / 6';
             document.getElementById('timer-text').innerText = '30s';
             document.getElementById('placed-items-container').innerHTML = '';
-            
             if (timerInterval) clearInterval(timerInterval);
-            refreshFoodPool();
-            startTimer();
+            refreshFoodPool(); startTimer();
             updateSprite(getRandomMsg('intro'), 'happy');
         }
 
         function refreshFoodPool() {
             const grid = document.getElementById('food-pool-grid');
             grid.innerHTML = '';
-            
-            let currentPool = [];
-            
-            // 每類隨機抽取
+            let pool = [];
             Object.keys(foodDatabase).forEach(cat => {
-                if (cat === 'junk') return;
-                const items = foodDatabase[cat];
-                const picked = items[Math.floor(Math.random() * items.length)];
-                currentPool.push({ ...picked, category: cat });
+                if(cat === 'junk') return;
+                const item = foodDatabase[cat][Math.floor(Math.random()*foodDatabase[cat].length)];
+                pool.push({...item, category: cat});
             });
-
-            // 隨機垃圾食物
-            const junks = [...foodDatabase.junk].sort(() => 0.5 - Math.random()).slice(0, 2);
-            junks.forEach(j => currentPool.push({ ...j, category: 'junk' }));
-
-            // 徹底隨機排列
-            currentPool.sort(() => 0.5 - Math.random()).forEach(item => {
+            foodDatabase.junk.slice(0,2).forEach(j => pool.push({...j, category: 'junk'}));
+            pool.sort(() => 0.5 - Math.random()).forEach(item => {
                 const card = document.createElement('div');
-                card.className = 'food-card';
-                card.draggable = true;
+                card.className = 'food-card'; card.draggable = true;
                 card.innerHTML = `<div class="text-3xl">${item.icon}</div><div class="text-[9px] font-black text-slate-400 uppercase mt-1">${item.name}</div>`;
-                card.dataset.category = item.category;
-                card.dataset.icon = item.icon;
-
-                card.ondragstart = (e) => {
-                    draggedElement = card;
-                    card.style.opacity = '0.4';
-                };
-                card.ondragend = () => {
-                    draggedElement = null;
-                    card.style.opacity = '1';
-                };
+                card.dataset.category = item.category; card.dataset.icon = item.icon;
+                card.ondragstart = (e) => { draggedElement = card; card.style.opacity = '0.4'; };
+                card.ondragend = () => { draggedElement = null; card.style.opacity = '1'; };
                 grid.appendChild(card);
             });
-
             setupDropZones();
         }
 
         function setupDropZones() {
             document.querySelectorAll('.drop-zone').forEach(zone => {
-                zone.ondragover = (e) => {
-                    e.preventDefault();
-                    zone.classList.add('active');
-                };
+                zone.ondragover = (e) => { e.preventDefault(); zone.classList.add('active'); };
                 zone.ondragleave = () => zone.classList.remove('active');
-                zone.ondrop = (e) => {
-                    e.preventDefault();
-                    zone.classList.remove('active');
-                    handleDrop(zone);
-                };
+                zone.ondrop = (e) => { e.preventDefault(); zone.classList.remove('active'); handleDrop(zone); };
             });
         }
 
         function handleDrop(zone) {
             if (!draggedElement || !isGameRunning) return;
-
             const foodCat = draggedElement.dataset.category;
             const zoneCat = zone.dataset.category;
-
-            if (foodCat === 'junk') {
-                updateSprite(getRandomMsg('junk'), 'sad');
-                return;
-            }
-
+            if (foodCat === 'junk') { updateSprite(getRandomMsg('junk'), 'sad'); return; }
             if (foodCat === zoneCat) {
-                if (collectedCategories.has(foodCat)) {
-                    updateSprite(getRandomMsg('alreadyHave'), 'happy');
-                    return;
-                }
-
+                if (collectedCategories.has(foodCat)) { updateSprite(getRandomMsg('alreadyHave'), 'happy'); return; }
                 collectedCategories.add(foodCat);
                 document.getElementById('score-text').innerText = `${collectedCategories.size} / 6`;
-                
                 const zRect = zone.getBoundingClientRect();
                 const pRect = document.getElementById('main-plate').getBoundingClientRect();
                 const emoji = document.createElement('div');
@@ -395,14 +333,10 @@
                 emoji.style.top = (zRect.top - pRect.top + zRect.height / 2) + 'px';
                 emoji.innerText = draggedElement.dataset.icon;
                 document.getElementById('placed-items-container').appendChild(emoji);
-                
                 draggedElement.style.visibility = 'hidden';
                 updateSprite(getRandomMsg('correct'), 'happy');
-
                 if (collectedCategories.size === 6) endLevel(true);
-            } else {
-                updateSprite(getRandomMsg('error'), 'thinking');
-            }
+            } else { updateSprite(getRandomMsg('error'), 'thinking'); }
         }
 
         function startTimer() {
@@ -410,22 +344,13 @@
                 if (!isGameRunning) return;
                 timeLeft--;
                 document.getElementById('timer-text').innerText = timeLeft + 's';
-                
-                if (timeLeft === 10) {
-                    updateSprite(getRandomMsg('hurry'), 'thinking');
-                }
-                
+                if (timeLeft === 10) updateSprite(getRandomMsg('hurry'), 'thinking');
                 if (timeLeft <= 0) endLevel(false);
             }, 1000);
         }
 
         function updateSprite(msg, mood) {
-            const bubble = document.getElementById('sprite-bubble');
-            bubble.style.animation = 'none'; // 重置動畫
-            void bubble.offsetWidth; // 觸發重繪
-            bubble.style.animation = 'bubbleFloat 2s ease-in-out infinite';
-            
-            bubble.innerText = msg;
+            document.getElementById('sprite-bubble').innerText = msg;
             const mouth = document.getElementById('sprite-mouth');
             if (mood === 'happy') mouth.setAttribute('d', 'M 40 65 Q 50 75 60 65');
             else if (mood === 'thinking') mouth.setAttribute('d', 'M 40 68 Q 50 68 60 68');
@@ -433,20 +358,17 @@
         }
 
         function endLevel(isWin) {
-            isGameRunning = false;
-            clearInterval(timerInterval);
+            isGameRunning = false; clearInterval(timerInterval);
             const screen = document.getElementById('end-screen');
             screen.classList.remove('hidden');
             if (isWin) {
                 document.getElementById('end-icon').innerText = '🏆';
                 document.getElementById('end-title').innerText = '任務達成！';
                 document.getElementById('end-msg').innerText = '你配置了一個完美的均衡餐盤！';
-                updateSprite('太厲害了，你是營養達人！', 'happy');
             } else {
                 document.getElementById('end-icon').innerText = '⌛';
                 document.getElementById('end-title').innerText = '時間到！';
-                document.getElementById('end-msg').innerText = '差一點點，下次要更快收集完畢喔！';
-                updateSprite('沒關係，再來挑戰一次吧！', 'sad');
+                document.getElementById('end-msg').innerText = '差一點點，點擊下方按鈕複習一下分類吧！';
             }
         }
     </script>
