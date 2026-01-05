@@ -29,7 +29,7 @@
             position: relative;
             display: flex;
             align-items: center;
-            gap: 40px; /* 增加餐盤與筷子的距離 */
+            gap: 40px;
             background: rgba(255,255,255,0.05);
             padding: 60px 80px;
             border-radius: 60px;
@@ -107,10 +107,22 @@
         }
         .food-card:active { cursor: grabbing; }
 
+        /* 放置後的物品樣式 */
         .placed-item {
-            position: absolute; font-size: 3.5rem; z-index: 60; pointer-events: none;
-            transform: translate(-50%, -50%); animation: itemPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: absolute; z-index: 60; pointer-events: none;
+            transform: translate(-50%, -50%); 
+            animation: itemPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; align-items: center; justify-content: center;
         }
+        .placed-emoji { font-size: 3.5rem; }
+        .placed-text { 
+            background: white; color: #1e293b; 
+            padding: 8px 16px; border-radius: 99px; 
+            font-weight: 900; font-size: 1.2rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            white-space: nowrap;
+        }
+
         @keyframes itemPop { from { transform: translate(-50%, -50%) scale(0); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
 
         .sprite-bubble {
@@ -147,7 +159,7 @@
             <span class="text-4xl">🥗</span>
             <div>
                 <h1 class="text-xl font-black text-white tracking-widest">均衡飲食挑戰</h1>
-                <p class="text-[10px] text-sky-400 font-bold uppercase tracking-tighter">Educational Dynamic System v9.1</p>
+                <p class="text-[10px] text-sky-400 font-bold uppercase tracking-tighter">Educational Dynamic System v9.2</p>
             </div>
         </div>
         <div class="flex gap-8">
@@ -274,7 +286,8 @@
             fruit: [{ name: '紅蘋果', icon: '🍎' }, { name: '黃香蕉', icon: '🍌' }, { name: '紅西瓜', icon: '🍉' }, { name: '青芭樂', icon: '🍐' }],
             vegetable: [{ name: '花椰菜', icon: '🥦' }, { name: '紅蘿蔔', icon: '🥕' }, { name: '大番茄', icon: '🍅' }, { name: '青江菜', icon: '🥬' }],
             grain: [{ name: '糙米飯', icon: '🍚' }, { name: '紅地瓜', icon: '🍠' }, { name: '南瓜', icon: '🎃' }, { name: '馬鈴薯', icon: '🥔' }],
-            protein: [{ name: '鯛魚片', icon: '🐟' }, { name: '荷包蛋', icon: '🍳' }, { name: '板豆腐', icon: '🧊' }, { name: '嫩雞腿', icon: '🍗' }],
+            // 移除板豆腐的冰塊 icon
+            protein: [{ name: '鯛魚片', icon: '🐟' }, { name: '荷包蛋', icon: '🍳' }, { name: '板豆腐' }, { name: '嫩雞腿', icon: '🍗' }],
             milk: [{ name: '鮮乳', icon: '🥛' }, { name: '優格', icon: '🍦' }, { name: '起司', icon: '🧀' }],
             oil: [{ name: '花生', icon: '🥜' }, { name: '腰果', icon: '🌰' }, { name: '核桃', icon: '🥨' }],
             junk: [{ name: '炸薯條', icon: '🍟' }, { name: '甜甜圈', icon: '🍩' }, { name: '可樂', icon: '🥤' }]
@@ -313,15 +326,25 @@
             let pool = [];
             Object.keys(foodDatabase).forEach(cat => {
                 if(cat === 'junk') return;
-                const item = foodDatabase[cat][Math.floor(Math.random()*foodDatabase[cat].length)];
+                const items = foodDatabase[cat];
+                const item = items[Math.floor(Math.random()*items.length)];
                 pool.push({...item, category: cat});
             });
             foodDatabase.junk.slice(0,2).forEach(j => pool.push({...j, category: 'junk'}));
             pool.sort(() => 0.5 - Math.random()).forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'food-card'; card.draggable = true;
-                card.innerHTML = `<div class="text-3xl">${item.icon}</div><div class="text-[9px] font-black text-slate-400 uppercase mt-1">${item.name}</div>`;
-                card.dataset.category = item.category; card.dataset.icon = item.icon;
+                
+                // 邏輯修改：若無 icon 則使用文字
+                const displayHTML = item.icon ? 
+                    `<div class="text-3xl">${item.icon}</div>` : 
+                    `<div class="text-xs font-bold bg-white text-slate-900 py-2 rounded-md">${item.name}</div>`;
+                
+                card.innerHTML = `${displayHTML}<div class="text-[9px] font-black text-slate-400 uppercase mt-1">${item.icon ? item.name : ''}</div>`;
+                card.dataset.category = item.category; 
+                card.dataset.icon = item.icon || '';
+                card.dataset.name = item.name;
+
                 card.ondragstart = (e) => { draggedElement = card; card.style.opacity = '0.4'; };
                 card.ondragend = () => { draggedElement = null; card.style.opacity = '1'; };
                 grid.appendChild(card);
@@ -346,14 +369,25 @@
                 if (collectedCategories.has(foodCat)) { updateSprite(getRandomMsg('alreadyHave'), 'happy'); return; }
                 collectedCategories.add(foodCat);
                 document.getElementById('score-text').innerText = `${collectedCategories.size} / 6`;
+                
                 const zRect = zone.getBoundingClientRect();
                 const pRect = document.getElementById('main-plate').getBoundingClientRect();
-                const emoji = document.createElement('div');
-                emoji.className = 'placed-item';
-                emoji.style.left = (zRect.left - pRect.left + zRect.width / 2) + 'px';
-                emoji.style.top = (zRect.top - pRect.top + zRect.height / 2) + 'px';
-                emoji.innerText = draggedElement.dataset.icon;
-                document.getElementById('placed-items-container').appendChild(emoji);
+                
+                const itemContainer = document.createElement('div');
+                itemContainer.className = 'placed-item';
+                itemContainer.style.left = (zRect.left - pRect.left + zRect.width / 2) + 'px';
+                itemContainer.style.top = (zRect.top - pRect.top + zRect.height / 2) + 'px';
+                
+                // 判斷要放入 Icon 還是 文字
+                const icon = draggedElement.dataset.icon;
+                const name = draggedElement.dataset.name;
+                if (icon) {
+                    itemContainer.innerHTML = `<span class="placed-emoji">${icon}</span>`;
+                } else {
+                    itemContainer.innerHTML = `<span class="placed-text">${name}</span>`;
+                }
+
+                document.getElementById('placed-items-container').appendChild(itemContainer);
                 draggedElement.style.visibility = 'hidden';
                 updateSprite(getRandomMsg('correct'), 'happy');
                 if (collectedCategories.size === 6) endLevel(true);
